@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beautiluxe - Staff Tip Directory & QR System</title>
+  
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- QRCode.js & html2canvas Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Firebase SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #c59b27;
+      --primary-dark: #a27c19;
+      --primary-light: #f3e9d2;
+      --accent: #2c223b;
+      --bg-cream: #faf7f2;
+      --surface: #ffffff;
+      --text-main: #2b2b2b;
+      --text-muted: #6e6e73;
+      --border: #e8e3d9;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      --shadow-hover: 0 15px 35px rgba(197, 155, 39, 0.15);
+      --radius: 16px;
+      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-cream);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navigation Bar */
+    header {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 1.5rem;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title span {
+      color: var(--primary);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: #f0ebe1;
+      padding: 4px;
+      border-radius: 30px;
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SECTION 1: CUSTOMER VIEW */
+    .hero-banner {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-banner h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.5rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-banner p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .search-box {
+      max-width: 480px;
+      margin: 1.5rem auto 0;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 14px 20px 14px 48px;
+      border-radius: 30px;
+      border: 1px solid var(--border);
+      outline: none;
+      font-size: 0.95rem;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(197, 155, 39, 0.15);
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    /* Tech Grid */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .tech-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tech-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-hover);
+      border-color: var(--primary);
+    }
+
+    .avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 1rem;
+      border: 3px solid var(--primary-light);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .tech-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.2rem;
+    }
+
+    .tech-role {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.2rem;
+    }
+
+    .btn-tip-now {
+      background: var(--accent);
+      color: var(--surface);
+      border: none;
+      width: 100%;
+      padding: 10px 0;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .tech-card:hover .btn-tip-now {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* SECTION 2: ADMIN STAFF MANAGEMENT */
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .btn-add {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(197, 155, 39, 0.3);
+      transition: var(--transition);
+    }
+
+    .btn-add:hover {
+      background: var(--primary-dark);
+    }
+
+    .admin-table-container {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .admin-table th, .admin-table td {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .admin-table th {
+      background: #faf7f2;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .table-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      background: #f0ebe1;
+      border: none;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-main);
+      transition: var(--transition);
+    }
+
+    .icon-btn.edit:hover { background: #e0f2fe; color: #0284c7; }
+    .icon-btn.delete:hover { background: #fee2e2; color: #dc2626; }
+
+    /* SECTION 3: SALON QR GENERATOR */
+    .qr-generator-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 850px) {
+      .qr-generator-layout { grid-template-columns: 1fr; }
+    }
+
+    .qr-config-card {
+      background: var(--surface);
+      padding: 2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+      font-size: 0.95rem;
+    }
+
+    .form-group input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Table Stand Preview */
+    .stand-preview-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .table-stand {
+      width: 320px;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 2px solid var(--primary);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .stand-header {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem;
+      color: var(--accent);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .stand-sub {
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--primary-dark);
+      margin-top: 4px;
+      margin-bottom: 1.5rem;
+    }
+
+    .stand-qr-wrapper {
+      background: #fff;
+      padding: 12px;
+      border-radius: 12px;
+      display: inline-block;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+      margin-bottom: 1.2rem;
+    }
+
+    .stand-instruction {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+    }
+
+    .stand-footer {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .download-btns {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--accent);
+    }
+
+    .btn-secondary:hover {
+      background: #f5f0e6;
+    }
+
+    /* AVATAR & ZELLE QR UPLOADERS */
+    .avatar-upload-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1.2rem;
+    }
+
+    .avatar-preview-wrapper {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid var(--primary);
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: var(--transition);
+    }
+
+    .avatar-preview-wrapper:hover {
+      opacity: 0.9;
+      transform: scale(1.03);
+    }
+
+    .avatar-preview-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-overlay-hint {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .avatar-preview-wrapper:hover .avatar-overlay-hint {
+      opacity: 1;
+    }
+
+    /* ZELLE QR CARD IN MODAL */
+    .zelle-qr-display-box {
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px dashed #7414ca;
+      display: inline-block;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(116, 20, 202, 0.08);
+    }
+
+    .zelle-qr-display-box img {
+      width: 160px;
+      height: 160px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* MODAL POPUP FOR TIP SELECTION */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition);
+      padding: 1rem;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-card {
+      background: var(--surface);
+      width: 100%;
+      max-width: 440px;
+      border-radius: 20px;
+      padding: 2rem;
+      position: relative;
+      transform: translateY(20px);
+      transition: var(--transition);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: translateY(0);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .tech-profile-summary {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .tech-profile-summary img {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 0.5rem;
+      border: 2px solid var(--primary);
+    }
+
+    .tech-profile-summary h3 {
+      font-size: 1.2rem;
+      color: var(--accent);
+    }
+
+    /* Payment Method Tabs in Modal */
+    .payment-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .payment-tab-btn {
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: transparent;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition);
+      color: var(--text-muted);
+    }
+
+    .payment-tab-btn.active.zelle {
+      border-color: #7414ca;
+      background: #f3e8ff;
+      color: #7414ca;
+    }
+
+    .payment-tab-btn.active.venmo {
+      border-color: #008CFF;
+      background: #e6f4ff;
+      color: #008CFF;
+    }
+
+    .payment-details-box {
+      background: #faf7f2;
+      border-radius: 12px;
+      padding: 1.2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      border: 1px dashed var(--border);
+    }
+
+    .pay-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .pay-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+      word-break: break-all;
+    }
+
+    .btn-copy {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+    }
+
+    .btn-copy:hover {
+      background: var(--primary);
+    }
+
+    .btn-venmo-link {
+      background: #008CFF;
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Preset Tip Suggestions */
+    .tip-presets {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .tip-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .tip-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--accent);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      transition: var(--transition);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <div class="nav-container">
+      <div class="brand-title">
+        <i class="fa-solid fa-sparkles"></i> BEAUTILUXE <span>TIPS</span>
+      </div>
+      <nav class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('directory')">
+          <i class="fa-solid fa-users"></i> Staff Directory
+        </button>
+        <button class="tab-btn" onclick="switchTab('admin')">
+          <i class="fa-solid fa-user-gear"></i> Manage Staff
+        </button>
+        <button class="tab-btn" onclick="switchTab('qr-gen')">
+          <i class="fa-solid fa-qrcode"></i> Salon QR
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: CUSTOMER VIEW - STAFF DIRECTORY -->
+    <section id="tab-directory" class="tab-content active">
+      <div class="hero-banner">
+        <h1>Select Your Specialist</h1>
+        <p>Thank you for visiting! Scan or tap below to send a tip via Zelle or Venmo.</p>
+        
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchInput" placeholder="Search technician by name..." oninput="renderDirectory()">
+        </div>
+      </div>
+
+      <div class="tech-grid" id="directoryGrid">
+        <!-- Technician cards render dynamically -->
+      </div>
+    </section>
+
+    <!-- TAB 2: ADMIN - MANAGE STAFF -->
+    <section id="tab-admin" class="tab-content">
+      <div class="admin-header">
+        <div>
+          <h2>Staff Roster & Payment Setup</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Add and edit payment details for each technician.</p>
+        </div>
+        <button class="btn-add" onclick="openStaffModal()">
+          <i class="fa-solid fa-plus"></i> Add New Technician
+        </button>
+      </div>
+
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Technician</th>
+              <th>Specialty</th>
+              <th>Zelle Info / QR</th>
+              <th>Venmo Username</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <!-- Dynamic staff table rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 3: SALON TABLE QR CODE GENERATOR -->
+    <section id="tab-qr-gen" class="tab-content">
+      <div class="qr-generator-layout">
+        <div class="qr-config-card">
+          <h2 style="margin-bottom: 0.5rem;">Table Stand Generator</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Print this master QR stand for your salon tables or front desk. When scanned, customers see the full staff directory.
+          </p>
+
+          <div class="form-group">
+            <label>Salon / Business Name</label>
+            <input type="text" id="cfgSalonName" value="BEAUTILUXE NAIL SPA" oninput="updateTableStand()">
+          </div>
+
+          <div class="form-group">
+            <label>Subtitle / Slogan</label>
+            <input type="text" id="cfgSubText" value="STAFF TIP DIRECTORY" oninput="updateTableStand()">
+          </div>
+
+          <div class="form-group">
+            <label>Instruction Text</label>
+            <input type="text" id="cfgInstruction" value="Scan to tip your specialist!" oninput="updateTableStand()">
+          </div>
+        </div>
+
+        <div class="stand-preview-container">
+          <div class="table-stand" id="printableStand">
+            <div class="stand-header" id="dispSalonName">BEAUTILUXE NAIL SPA</div>
+            <div class="stand-sub" id="dispSubText">STAFF TIP DIRECTORY</div>
+            
+            <div class="stand-qr-wrapper">
+              <div id="standQrCode"></div>
+            </div>
+
+            <div class="stand-instruction" id="dispInstruction">Scan to tip your specialist!</div>
+            <div class="stand-footer">Zelle & Venmo Direct Transfer</div>
+          </div>
+
+          <div class="download-btns">
+            <button class="btn-secondary" onclick="downloadStandImage()">
+              <i class="fa-solid fa-download"></i> Save as Image
+            </button>
+            <button class="btn-secondary" onclick="printStand()">
+              <i class="fa-solid fa-print"></i> Print Stand
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: TIP PAYMENT POPUP -->
+  <div class="modal-overlay" id="tipModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeTipModal()"><i class="fa-solid fa-xmark"></i></button>
+      
+      <div class="tech-profile-summary">
+        <img id="modalTechAvatar" src="" alt="Tech">
+        <h3 id="modalTechName">Technician Name</h3>
+        <p id="modalTechRole" style="font-size: 0.85rem; color: var(--text-muted);">Nail Specialist</p>
+      </div>
+
+      <div class="payment-tabs">
+        <button class="payment-tab-btn zelle active" id="btnTabZelle" onclick="switchPaymentMethod('zelle')">
+          <i class="fa-solid fa-bolt"></i> Zelle
+        </button>
+        <button class="payment-tab-btn venmo" id="btnTabVenmo" onclick="switchPaymentMethod('venmo')">
+          <i class="fa-brands fa-vimeo"></i> Venmo
+        </button>
+      </div>
+
+      <!-- Zelle View with QR Image option -->
+      <div id="payViewZelle">
+        <div style="text-align: center;">
+          <!-- Zelle Personal QR Code Container -->
+          <div id="boxZelleQr" class="zelle-qr-display-box" style="display: none;">
+            <p style="font-size: 0.75rem; font-weight: 700; color: #7414ca; margin-bottom: 6px;">SCAN ZELLE QR CODE</p>
+            <img id="imgZelleQr" src="" alt="Zelle QR Code">
+          </div>
+
+          <div class="payment-details-box">
+            <div class="pay-label">Zelle Phone / Email</div>
+            <div class="pay-value" id="dispZelleId">---</div>
+            <button class="btn-copy" onclick="copyToClipboard(currentSelectedTech.zelle, 'Zelle ID Copied!')">
+              <i class="fa-regular fa-copy"></i> Copy Zelle Info
+            </button>
+          </div>
+
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Suggested Tip Amounts:</p>
+          <div class="tip-presets">
+            <span class="tip-chip">$5</span>
+            <span class="tip-chip">$10</span>
+            <span class="tip-chip">$15</span>
+            <span class="tip-chip">$20</span>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.8rem;">
+            Scan QR code with your Bank App or copy Zelle number to tip.
+          </p>
+        </div>
+      </div>
+
+      <!-- Venmo View -->
+      <div id="payViewVenmo" style="display: none;">
+        <div class="payment-details-box">
+          <div class="pay-label">Venmo Username</div>
+          <div class="pay-value" id="dispVenmoId">---</div>
+          <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+            <button class="btn-copy" onclick="copyToClipboard(currentSelectedTech.venmo, 'Venmo Username Copied!')">
+              <i class="fa-regular fa-copy"></i> Copy Handle
+            </button>
+            <a href="#" id="linkVenmoApp" target="_blank" class="btn-venmo-link">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Venmo
+            </a>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <p style="font-size: 0.75rem; color: var(--text-muted);">
+            Tap "Open Venmo" to launch the Venmo app directly on your phone.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT STAFF -->
+  <div class="modal-overlay" id="staffFormModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeStaffModal()"><i class="fa-solid fa-xmark"></i></button>
+      <h3 id="staffFormTitle" style="margin-bottom: 1.2rem; color: var(--accent);">Add Technician</h3>
+
+      <form id="staffForm" onsubmit="saveStaff(event)">
+        <input type="hidden" id="staffId">
+        
+        <!-- Profile Picture Uploader -->
+        <div class="avatar-upload-container">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--accent); margin-bottom: 0.4rem;">Profile Picture</label>
+          <div class="avatar-preview-wrapper" onclick="document.getElementById('fileAvatarInput').click()" title="Click to change photo">
+            <img id="formAvatarPreview" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" alt="Avatar preview">
+            <div class="avatar-overlay-hint">
+              <i class="fa-solid fa-camera" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
+              <span>Change</span>
+            </div>
+          </div>
+          <input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'avatar')">
+          <input type="hidden" id="staffAvatar" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150">
+        </div>
+
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="staffName" required placeholder="e.g. Sarah Jenkins">
+        </div>
+
+        <div class="form-group">
+          <label>Role / Specialty</label>
+          <input type="text" id="staffRole" placeholder="e.g. Nail Artist & Tech">
+        </div>
+
+        <div class="form-group">
+          <label>Zelle Phone Number or Email *</label>
+          <input type="text" id="staffZelle" required placeholder="555-123-4567 or email@domain.com">
+        </div>
+
+        <!-- Zelle QR Code Image Uploader -->
+        <div class="form-group" style="background: #f8f3fc; padding: 12px; border-radius: 8px; border: 1px dashed #7414ca;">
+          <label style="color: #7414ca;">Zelle Personal QR Code (Optional)</label>
+          <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+            <button type="button" class="btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="document.getElementById('fileZelleQrInput').click()">
+              <i class="fa-solid fa-qrcode"></i> Upload Zelle QR Image
+            </button>
+            <span id="txtZelleQrStatus" style="font-size: 0.75rem; color: var(--text-muted);">No QR uploaded</span>
+          </div>
+          <input type="file" id="fileZelleQrInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'zelleQr')">
+          <input type="hidden" id="staffZelleQr" value="">
+        </div>
+
+        <div class="form-group">
+          <label>Venmo Username (without @)</label>
+          <input type="text" id="staffVenmo" placeholder="e.g. Sarah-Jenkins-Nails">
+        </div>
+
+        <button type="submit" class="btn-add" style="width: 100%; justify-content: center; margin-top: 1rem;">
+          Save Technician
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Element -->
+  <div class="toast" id="toastNotification">
+    <i class="fa-solid fa-circle-check"></i> <span id="toastMsg">Action completed!</span>
+  </div>
+
+  <script>
+    // 1. Firebase Configuration & Initialization
+    const firebaseConfig = {
+      apiKey: "AIzaSyCOuXsxdRaLdMtf0C6R8K99KhJy9maAQ44",
+      authDomain: "zelle-9a074.firebaseapp.com",
+      databaseURL: "https://zelle-9a074-default-rtdb.firebaseio.com",
+      projectId: "zelle-9a074",
+      storageBucket: "zelle-9a074.firebasestorage.app",
+      messagingSenderId: "952536651505",
+      appId: "1:952536651505:web:788aaab1ed3b6d1d663b50"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    //
